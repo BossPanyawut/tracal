@@ -6,7 +6,7 @@ export type FeeInput = {
 };
 
 export type TradeCalculationInput = {
-  quantity: string | number;
+  capitalThb: string | number;
   buyPriceUsd: string | number;
   sellPriceUsd: string | number;
   buyFee: FeeInput;
@@ -15,16 +15,17 @@ export type TradeCalculationInput = {
 };
 
 export type TradeCalculationResult = {
+  capitalUsd: number;
+  quantity: number;
   grossBuyUsd: number;
   buyFeeUsd: number;
   totalCostUsd: number;
+  totalCostThb: number;
   grossSellUsd: number;
   sellFeeUsd: number;
   netSellUsd: number;
   profitUsd: number;
+  profitThb: number;
   roiPercent: number;
   breakEvenSellPriceUsd: number;
-  totalCostThb: number;
-  netSellThb: number;
-  profitThb: number;
 };

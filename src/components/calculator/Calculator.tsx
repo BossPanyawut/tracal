@@ -2,128 +2,134 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { calculateTrade } from "@/lib/calculation/calculateTrade";
-import { toTroyOunces } from "@/lib/calculation/goldUnits";
-import type { FxQuote, GoldMarketQuote, MarketQuote } from "@/lib/providers/types";
-import { AssetSelector } from "./AssetSelector";
+import { requiredSellPrice } from "@/lib/calculation/requiredSellPrice";
+import { buildSensitivity } from "@/lib/calculation/sensitivity";
+import type { FxQuote } from "@/lib/providers/types";
 import { FeeInputs } from "./FeeInputs";
-import { FxRateCard } from "./FxRateCard";
-import { MarketPriceCard } from "./MarketPriceCard";
 import { ProfitSummary } from "./ProfitSummary";
+import { TargetProfit } from "./TargetProfit";
 import { TradeInputs } from "./TradeInputs";
-import type { CalculatorState, FxState, MarketState } from "./types";
+import { loadState, saveState } from "./storage";
+import type { CalculatorState, FxState } from "./types";
 
 const initialState: CalculatorState = {
-  assetType: "crypto",
-  assetId: "bitcoin",
-  quantity: "",
+  capitalThb: "",
   buyPriceUsd: "",
   sellPriceUsd: "",
   buyFee: { mode: "percent", value: "0.100" },
   sellFee: { mode: "percent", value: "0.100" },
-  fxMode: "live",
   manualUsdThb: "",
-  goldUnit: "oz",
+  targetProfitThb: "",
 };
-
-async function readApi<T>(url: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch(url, { signal });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body?.error?.message || "Unable to load live data.");
-  return body as T;
-}
 
 export function Calculator() {
   const [state, setState] = useState(initialState);
-  const [fx, setFx] = useState<FxState>({ quote: null, loading: true, error: null });
-  const [market, setMarket] = useState<MarketState>({ quote: null, loading: true, error: null });
-  const [fxReload, setFxReload] = useState(0);
-  const [marketReload, setMarketReload] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
+  const [fx, setFx] = useState<FxState>({ quote: null, loading: true, error: false });
+
+  // localStorage only exists in the browser, so the restore has to happen after
+  // mount: reading it during render would make the first client paint disagree
+  // with the prerendered HTML and break hydration on the controlled inputs.
+  useEffect(() => {
+    const stored = loadState();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
+    if (stored) setState(stored);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) saveState(state);
+  }, [state, hydrated]);
 
   useEffect(() => {
     const controller = new AbortController();
-    readApi<FxQuote>("/api/fx?base=USD&quote=THB", controller.signal)
-      .then((quote) => setFx({ quote, loading: false, error: null }))
+    fetch("/api/fx?base=USD&quote=THB", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("unavailable");
+        return (await response.json()) as FxQuote;
+      })
+      .then((quote) => setFx({ quote, loading: false, error: false }))
       .catch((error: Error) => {
         if (error.name === "AbortError") return;
-        setFx((current) => ({ ...current, loading: false, error: error.message }));
-        setState((current) => ({ ...current, fxMode: "manual" }));
+        setFx({ quote: null, loading: false, error: true });
       });
     return () => controller.abort();
-  }, [fxReload]);
+  }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const url = state.assetType === "gold"
-      ? "/api/market?type=gold"
-      : `/api/market?type=crypto&id=${state.assetId}`;
-    readApi<MarketQuote | GoldMarketQuote>(url, controller.signal)
-      .then((quote) => setMarket({ quote, loading: false, error: null }))
-      .catch((error: Error) => {
-        if (error.name === "AbortError") return;
-        setMarket({ quote: null, loading: false, error: error.message });
-      });
-    return () => controller.abort();
-  }, [state.assetType, state.assetId, marketReload]);
+  const activeRate = fx.quote ? fx.quote.rate.toString() : state.manualUsdThb;
 
-  const activeFx = state.fxMode === "live" ? fx.quote?.rate.toString() || "" : state.manualUsdThb;
+  const tradeInput = useMemo(() => ({
+    capitalThb: state.capitalThb,
+    buyPriceUsd: state.buyPriceUsd,
+    sellPriceUsd: state.sellPriceUsd,
+    buyFee: state.buyFee,
+    sellFee: state.sellFee,
+    usdThb: activeRate,
+  }), [state, activeRate]);
+
   const { result, calculationError } = useMemo(() => {
-    if (!state.quantity || !state.buyPriceUsd || !state.sellPriceUsd || !activeFx) {
+    if (!state.capitalThb || !state.buyPriceUsd || !state.sellPriceUsd || !activeRate) {
       return { result: null, calculationError: null };
     }
     try {
-      const quantity = state.assetType === "gold"
-        ? toTroyOunces(state.quantity, state.goldUnit)
-        : state.quantity;
+      return { result: calculateTrade(tradeInput), calculationError: null };
+    } catch (error) {
+      return { result: null, calculationError: error instanceof Error ? error.message : "ข้อมูลไม่ถูกต้อง" };
+    }
+  }, [state, activeRate, tradeInput]);
+
+  const sensitivity = useMemo(
+    () => (result ? buildSensitivity(tradeInput) : []),
+    [result, tradeInput],
+  );
+
+  const target = useMemo(() => {
+    if (!state.capitalThb || !state.buyPriceUsd || !state.targetProfitThb || !activeRate) {
+      return { price: null, error: null };
+    }
+    try {
       return {
-        result: calculateTrade({
-          quantity,
+        price: requiredSellPrice({
+          capitalThb: state.capitalThb,
           buyPriceUsd: state.buyPriceUsd,
-          sellPriceUsd: state.sellPriceUsd,
           buyFee: state.buyFee,
           sellFee: state.sellFee,
-          usdThb: activeFx,
+          usdThb: activeRate,
+          targetProfitThb: state.targetProfitThb,
         }),
-        calculationError: null,
+        error: null,
       };
     } catch (error) {
-      return { result: null, calculationError: error instanceof Error ? error.message : "Invalid input." };
+      return { price: null, error: error instanceof Error ? error.message : "ข้อมูลไม่ถูกต้อง" };
     }
-  }, [state, activeFx]);
+  }, [state, activeRate]);
 
   const update = useCallback(<K extends keyof CalculatorState>(key: K, value: CalculatorState[K]) => {
-    if (key === "assetType" || key === "assetId") {
-      setMarket({ quote: null, loading: true, error: null });
-    }
     setState((current) => ({ ...current, [key]: value }));
   }, []);
 
   function reset() {
-    setState({ ...initialState, fxMode: fx.quote ? "live" : "manual" });
+    setState(initialState);
   }
 
   return (
     <section className="calculator-frame" aria-label="Trading calculator">
       <div className="calculator-toolbar">
-        <div><span className="status-dot" /> REAL-TIME CALCULATION</div>
-        <button type="button" onClick={reset}>↻ Reset calculator</button>
+        <h2>คำนวณกำไร–ขาดทุน</h2>
+        <button type="button" onClick={reset}>ล้างค่า</button>
       </div>
       <div className="calculator-grid">
         <div className="inputs-column">
-          <AssetSelector assetType={state.assetType} assetId={state.assetId} goldUnit={state.goldUnit} onChange={update} />
-          <TradeInputs state={state} onChange={update} />
+          <TradeInputs state={state} fx={fx} activeRate={activeRate} onChange={update} />
           <FeeInputs buyFee={state.buyFee} sellFee={state.sellFee} onChange={update} />
-          <div className="live-data-grid">
-            <MarketPriceCard market={market} onUsePrice={() => market.quote && update("sellPriceUsd", market.quote.price.toString())} onRetry={() => {
-              setMarket((current) => ({ ...current, loading: true, error: null }));
-              setMarketReload((value) => value + 1);
-            }} />
-            <FxRateCard state={state} fx={fx} onModeChange={(mode) => update("fxMode", mode)} onManualChange={(value) => update("manualUsdThb", value)} onRetry={() => {
-              setFx((current) => ({ ...current, loading: true, error: null }));
-              setFxReload((value) => value + 1);
-            }} />
-          </div>
+          <TargetProfit
+            targetProfitThb={state.targetProfitThb}
+            requiredPrice={target.price}
+            error={target.error}
+            onChange={update}
+          />
         </div>
-        <ProfitSummary result={result} error={calculationError} />
+        <ProfitSummary result={result} error={calculationError} sensitivity={sensitivity} />
       </div>
     </section>
   );

@@ -1,48 +1,82 @@
-import type { CalculatorState } from "./types";
+import type { CalculatorState, FxState } from "./types";
 
 type Props = {
   state: CalculatorState;
-  onChange: (key: "quantity" | "buyPriceUsd" | "sellPriceUsd", value: string) => void;
+  fx: FxState;
+  activeRate: string;
+  onChange: (key: "capitalThb" | "buyPriceUsd" | "sellPriceUsd" | "manualUsdThb", value: string) => void;
 };
 
-export function TradeInputs({ state, onChange }: Props) {
-  const quantityUnit = state.assetType === "gold"
-    ? state.goldUnit === "gram" ? "GRAM" : "OZ"
-    : state.assetId === "bitcoin" ? "BTC" : "ETH";
+const rateFormat = new Intl.NumberFormat("th-TH", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+
+export function TradeInputs({ state, fx, activeRate, onChange }: Props) {
   return (
     <section className="input-section" aria-labelledby="prices-heading">
-      <div className="section-heading">
-        <span>02</span><h2 id="prices-heading">Position &amp; prices</h2>
-      </div>
-      <label className="field-label">
-        <span>จำนวน <b>{quantityUnit}</b></span>
-        <div className="number-field">
+      <h2 id="prices-heading" className="sr-only">เงินทุนและราคา</h2>
+      <label className="field-block">
+        <span className="field-block-label">เงินทุนที่ใช้ซื้อ</span>
+        <div className="field-block-row">
           <input
-            aria-label="Quantity"
+            aria-label="Capital THB"
             inputMode="decimal"
             placeholder="0.00"
-            value={state.quantity}
-            onChange={(event) => onChange("quantity", event.target.value)}
+            value={state.capitalThb}
+            onChange={(event) => onChange("capitalThb", event.target.value)}
           />
-          <em>{quantityUnit}</em>
+          <span className="unit-chip"><i aria-hidden="true" className="baht">฿</i>THB</span>
         </div>
       </label>
-      <div className="field-pair">
-        <label className="field-label">
-          <span>ราคาซื้อ <b>USD</b></span>
-          <div className="number-field prefix">
-            <em>$</em>
-            <input aria-label="Buy price USD" inputMode="decimal" placeholder="0.00" value={state.buyPriceUsd} onChange={(event) => onChange("buyPriceUsd", event.target.value)} />
+      {fx.quote ? (
+        <p className="rate-note">
+          แปลงที่ {rateFormat.format(fx.quote.rate)} บาทต่อดอลลาร์
+          {fx.quote.stale ? " (ข้อมูลย้อนหลัง)" : ""}
+        </p>
+      ) : fx.loading ? (
+        <p className="rate-note">กำลังโหลดอัตราแลกเปลี่ยน</p>
+      ) : (
+        <label className="field-block manual-rate">
+          <span className="field-block-label">อัตรา USD/THB (กรอกเอง)</span>
+          <div className="field-block-row">
+            <input
+              aria-label="Manual USD THB rate"
+              inputMode="decimal"
+              placeholder="0.0000"
+              value={state.manualUsdThb}
+              onChange={(event) => onChange("manualUsdThb", event.target.value)}
+            />
+            <span className="unit-chip plain">บาท/ดอลลาร์</span>
           </div>
         </label>
-        <label className="field-label">
-          <span>ราคาขาย <b>USD</b></span>
-          <div className="number-field prefix">
-            <em>$</em>
-            <input aria-label="Sell price USD" inputMode="decimal" placeholder="0.00" value={state.sellPriceUsd} onChange={(event) => onChange("sellPriceUsd", event.target.value)} />
-          </div>
-        </label>
-      </div>
+      )}
+      <label className="field-block">
+        <span className="field-block-label">ราคาซื้อต่อหน่วย</span>
+        <div className="field-block-row">
+          <input
+            aria-label="Buy price USD"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={state.buyPriceUsd}
+            onChange={(event) => onChange("buyPriceUsd", event.target.value)}
+          />
+          <span className="unit-chip"><i aria-hidden="true">$</i>USD</span>
+        </div>
+      </label>
+      <label className="field-block">
+        <span className="field-block-label">ราคาขายต่อหน่วย</span>
+        <div className="field-block-row">
+          <input
+            aria-label="Sell price USD"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={state.sellPriceUsd}
+            onChange={(event) => onChange("sellPriceUsd", event.target.value)}
+          />
+          <span className="unit-chip"><i aria-hidden="true">$</i>USD</span>
+        </div>
+      </label>
+      {!activeRate && !fx.loading ? (
+        <p className="rate-note warn">กรอกอัตรา USD/THB เพื่อเริ่มคำนวณ</p>
+      ) : null}
     </section>
   );
 }
