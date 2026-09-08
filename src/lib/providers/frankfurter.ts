@@ -3,7 +3,7 @@ import { fetchWithRetry, positiveIntegerFromEnv } from "./fetchWithRetry";
 import type { FxProvider, FxQuote } from "./types";
 
 const responseSchema = z.object({
-  date: z.string().min(1),
+  date: z.iso.date(),
   base: z.literal("USD"),
   quote: z.literal("THB"),
   rate: z.number().positive().finite(),

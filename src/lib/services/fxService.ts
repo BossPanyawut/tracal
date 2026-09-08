@@ -1,6 +1,6 @@
 import { CoinbaseFxProvider } from "@/lib/providers/coinbase";
 import { FrankfurterProvider } from "@/lib/providers/frankfurter";
-import type { FxProvider, FxQuote } from "@/lib/providers/types";
+import { fxQuoteSchema, type FxProvider, type FxQuote } from "@/lib/providers/types";
 
 let lastKnownFx: FxQuote | null = null;
 
@@ -9,13 +9,13 @@ export async function getUsdThbQuote(
   fallbackProvider: FxProvider | null = new FrankfurterProvider(),
 ): Promise<FxQuote> {
   try {
-    const quote = await provider.getUsdThb();
+    const quote = fxQuoteSchema.parse(await provider.getUsdThb());
     lastKnownFx = quote;
     return quote;
   } catch (error) {
     if (fallbackProvider) {
       try {
-        const fallbackQuote = await fallbackProvider.getUsdThb();
+        const fallbackQuote = fxQuoteSchema.parse(await fallbackProvider.getUsdThb());
         lastKnownFx = fallbackQuote;
         return fallbackQuote;
       } catch {

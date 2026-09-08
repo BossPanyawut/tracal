@@ -1,46 +1,35 @@
-import { Calculator } from "@/components/calculator/Calculator";
-import { FxTicker } from "@/components/fx/FxTicker";
+import Link from "next/link";
+import { LegacyHashRedirect } from "@/components/layout/LegacyHashRedirect";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+
+const tools = [
+  { href: "/calculator", number: "01", title: "คำนวณและแผน", description: "ทดลองราคา เรตซื้อ–ขาย ค่าธรรมเนียม จุดคุ้มทุน และขนาดความเสี่ยง แล้วบันทึกหลายแผนไว้เทียบกัน", action: "เปิดเครื่องคำนวณ" },
+  { href: "/journal", number: "02", title: "สมุดรายการ", description: "บันทึกซื้อหลายไม้ ขายบางส่วน ดูต้นทุนเฉลี่ยและกำไรที่เกิดขึ้นจริง พร้อมนำเข้าและสำรอง CSV", action: "เปิดสมุดรายการ" },
+  { href: "/widget", number: "03", title: "Widget สำหรับเว็บไซต์", description: "ตั้งชื่อแบรนด์และสีหลัก แล้วสร้าง iframe เครื่องคำนวณสำหรับเว็บไซต์ของคุณ", action: "สร้าง Widget" },
+];
 
 export default function Home() {
   return (
-    <main className="site-shell">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="TRACAL home">
-          <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
-          <span>TRACAL</span>
-        </a>
-        <nav className="topbar-nav" aria-label="Main navigation">
-          <a href="#calculator">Calculator</a>
-        </nav>
-        <a className="nav-cta" href="#calculator">Calculate now</a>
-      </header>
-
-      <section className="hero" id="top">
-        <div className="hero-copy-block">
-          <p className="eyebrow">เครื่องคำนวณกำไรและจุดคุ้มทุน</p>
-          <h1>Know your numbers.<br /><span>Trade with clarity.</span></h1>
-          <p className="hero-copy">
-            ใส่เงินทุนเป็นบาท ราคาซื้อและราคาขายต่อหน่วยเป็นดอลลาร์
-            แล้วดูกำไร ขาดทุน และราคาขายคุ้มทุนพร้อมค่าธรรมเนียม
-          </p>
-          <div className="hero-actions">
-            <a className="primary-cta" href="#calculator">เริ่มคำนวณ</a>
-            <span>ไม่ต้องสมัครสมาชิก</span>
+    <div className="site-shell home-page">
+      <LegacyHashRedirect />
+      <SiteHeader active="home" />
+      <main>
+        <section className="hero" id="top">
+          <div className="hero-copy-block">
+            <p className="eyebrow">เครื่องมือวางแผนการซื้อขายสำหรับคนไทย</p>
+            <h1>วางแผนให้ชัด<br /><span>ก่อนใช้เงินจริง</span></h1>
+            <p className="hero-copy">แยกกำไรจากราคา ผลของค่าเงิน และค่าธรรมเนียม บันทึกแผนกับรายการจริงไว้ในเครื่อง โดยไม่ต้องสมัครสมาชิก</p>
+            <div className="hero-actions"><Link className="primary-cta" href="/calculator">เริ่มคำนวณ</Link><Link className="secondary-link" href="/journal">ดูสมุดรายการ →</Link></div>
           </div>
-        </div>
-        <FxTicker />
-      </section>
-
-      <div id="calculator"><Calculator /></div>
-
-      <footer className="footer">
-        <div className="footer-brand">
-          <span className="brand-mark dark" aria-hidden="true"><i /><i /><i /></span>
-          <div><strong>TRACAL</strong><p>Trade cost &amp; profit calculator</p></div>
-        </div>
-        <p className="footer-disclaimer">ผลลัพธ์คำนวณจากตัวเลขที่กรอกเอง อาจต่างจากราคาที่ชำระจริง และไม่ใช่คำแนะนำด้านการลงทุน</p>
-        <p className="footer-version">MVP 01 · 2026</p>
-      </footer>
-    </main>
+          <aside className="hero-note"><span>LOCAL FIRST</span><strong>ข้อมูลแผนอยู่ใน browser ของคุณ</strong><p>ใช้งาน manual ได้เมื่อแหล่งราคาไม่พร้อม และสำรองข้อมูลออกเป็น JSON หรือ CSV ได้</p></aside>
+        </section>
+        <section className="tool-picker" aria-labelledby="tool-picker-title">
+          <div className="tool-picker-heading"><p className="eyebrow">เลือกงานที่ต้องการทำ</p><h2 id="tool-picker-title">แต่ละงานมีพื้นที่ของตัวเอง</h2><p>เริ่มจากแผนก่อนซื้อ หรือเปิดสมุดเมื่อมีรายการจริงแล้ว</p></div>
+          <div className="tool-grid">{tools.map((tool) => <Link className="tool-card" href={tool.href} key={tool.href}><span className="tool-number">{tool.number}</span><h3>{tool.title}</h3><p>{tool.description}</p><strong>{tool.action} <i aria-hidden="true">→</i></strong></Link>)}</div>
+        </section>
+      </main>
+      <SiteFooter />
+    </div>
   );
 }

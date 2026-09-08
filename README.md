@@ -1,34 +1,31 @@
 # TRACAL
 
-Trading profit and loss calculator. Enter your capital in THB plus the per-unit buy and sell prices in USD, and it works out the quantity your capital buys, then the profit/loss, ROI and break-even sell price — fees included.
+A local-first trading planner for USD/USDT spot trades and USD gold spot, with net THB cash flows. Enter prices, independent buy/sell FX and fees; see quote-currency and THB profit, ROI, break-even prices, attribution and scenario results.
 
-It also:
+## Features
 
-- shows profit at a ladder of sell prices (±5%, ±10%) so the downside sits next to the upside
-- answers the reverse question: what sell price reaches a target profit
-- remembers your inputs in the browser between visits
+- Reverse THB profit targets and risk sizing from stop price, risk budget and capital cap.
+- Manual FX always available; optional USD/THB reference with source/time and fallback.
+- BTC/ETH reference prices; optional GoldAPI XAU reference. Gold quantity display in troy ounces or grams.
+- Saved plans with frozen applied rates, calculation versions and JSON backup/import.
+- Multiple-entry/partial-exit journal, weighted-average costs, per-trade FX and CSV backup/import.
+- Separate USD/USDT modes; no implicit USD=USDT assumption.
+- `/widget` creates branded iframe code; `/embed` runs a transient calculator.
+- `/` is a focused tool picker; `/calculator` and `/journal` keep planning and actual records in separate workspaces. Legacy `/#calculator` and `/#journal` links redirect to the new pages.
+- No database, login or exchange account connection. Records stay in browser storage.
 
-The home page shows a reference USD/THB rate, served by `/api/fx`, which is also the rate used to convert your capital.
-
-## Run locally
+## Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-No configuration is required. `FX_CACHE_SECONDS` (see `.env.example`) optionally tunes how long the USD/THB rate is cached; both rate sources are public endpoints and need no API key.
+Open `/calculator` to create plans, `/journal` to record actual trades, or choose a workspace from `/`.
 
-## USD/THB rate sources
+`FX_CACHE_SECONDS` optionally configures FX caching. `GOLD_API_KEY` is an optional server-only credential for gold reference prices. Manual gold calculations need no key. Do not commit local environment files.
 
-| Order | Source | Endpoint |
-| --- | --- | --- |
-| Primary | Coinbase | `api.coinbase.com/v2/exchange-rates?currency=USD` |
-| Fallback | Bank of Thailand via Frankfurter | `api.frankfurter.dev/v2/rate/USD/THB?providers=BOT` |
-
-If both fail, the last successful rate is served and flagged as stale.
-
-## Quality gates
+## Validation
 
 ```bash
 npm run lint
@@ -38,4 +35,16 @@ npm run test:e2e
 npm run build
 ```
 
-See [`docs/requirements.md`](docs/requirements.md), [`docs/architecture.md`](docs/architecture.md), [`docs/testing-strategy.md`](docs/testing-strategy.md), and [`docs/deployment.md`](docs/deployment.md) for the project decisions and operating notes.
+Run E2E and build sequentially. Automated provider tests use mocks; they do not prove live provider uptime.
+
+## Documentation
+
+- [Development plan and checkpoints](docs/development-plan.md)
+- [Task backlog and execution log](docs/tasks.md)
+- [Calculation contract v2](docs/calculation-contract-v2.md)
+- [AI agent execution runbook](docs/agent-runbook.md)
+- [Requirements](docs/requirements.md), [architecture](docs/architecture.md), [testing](docs/testing-strategy.md), [deployment](docs/deployment.md)
+- [Release notes, data migration and CSV limitations](docs/release-notes.md)
+- [Pilot kit](docs/product-validation.md) and [future cloud/member work](docs/future-cloud.md)
+
+These are estimates under the prices, FX and execution assumptions entered, before tax. Saved plans are local to the browser/origin; export backups before moving devices or clearing site data.

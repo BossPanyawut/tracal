@@ -31,7 +31,7 @@ export class CoinbaseFxProvider implements FxProvider {
       quote: "THB",
       rate,
       source: "Coinbase",
-      referenceDate: fetchedAt.slice(0, 10),
+      referenceDate: null, // Provider does not publish the quote timestamp.
       fetchedAt,
       stale: false,
     };

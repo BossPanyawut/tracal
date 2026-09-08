@@ -1,3 +1,5 @@
+> คู่มือแนวคิดเดิม: บางฟีเจอร์และ provider ในเอกสารนี้เป็นตัวอย่าง ไม่ใช่สถานะปัจจุบัน อ่าน [แผนปัจจุบัน](docs/development-plan.md), [requirements](docs/requirements.md) และ [task log](docs/tasks.md) ก่อนเริ่มงาน
+
 # Trading Cost & Profit Calculator
 ## AI Coding Agent SDLC Project Guide — Next.js
 
